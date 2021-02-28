@@ -1,6 +1,7 @@
 import sys
 import tkinter as tk
 from tkinter import colorchooser
+from tkinter import ttk
 from tkinter.filedialog import askopenfilenames, askdirectory
 from PIL import Image
 
@@ -16,31 +17,93 @@ from src.mscripts import MergerScripts
 class ImageMerger():
     bg_color = '#ffffff'
     folder = MergerScripts.find_folderpath(sys.argv[0])
-    folder = MergerScripts.form_filepathstr(folder)
+
+    # in this list string value for "output path variable" is stored
+    # if you click another tab, path changes
+    output_entry_values = list()
+    output_entry_values.append(MergerScripts.make_default_concatenation_path(folder))
+    output_entry_values.append(folder)
+    current_active_tab = 0
+
+    DARK_BG = 'LightSteelBlue'
+    LIGHT_BG = 'AliceBlue'
     
     def __init__(self, master):
         self.master = master
         self.configure_main_window()
-        self.mainframe = self.add_mainframe(master)
-        self.grid = self.add_grid(self.mainframe, 14, 6)
-        self.lb01 = self.add_label(0, 1, self.mainframe, 'Concatenate Vertically')
-        self.bs_concat = self.add_biscale(0, 0, self.mainframe, self.lb01, 'Concatenate Vertically', 
-                                                                'Concatenate Horizontally')
-        self.lb02 = self.add_label(1, 1, self.mainframe, 'Resize to Max')
-        self.bs_resize = self.add_biscale(1, 0, self.mainframe, self.lb02, 'Resize to Max', 'Do not Resize')
-        self.lb03 = self.add_label(2, 1, self.mainframe, 'Background Color')
-        self.lb04 = self.add_label(4, 0, self.mainframe, 'Files:')
-        self.lb04.configure(font=('Consolas', '12', 'bold'), padx=3)
-        self.colorbtn = self.add_color_btn(self.grid[2][0])
-        self.lstbox = self.add_listbox(5, 0, self.mainframe)
-        self.inputbtn = self.add_inputbtn(self.grid[4][4])
-        self.excludebtn = self.add_excludebtn(self.grid[4][5])
-        self.lb05 = self.add_label(10, 0, self.mainframe, 'Output Path:')
-        self.lb05.configure(font=('Consolas', '12', 'bold'), padx=3)
-        self.direntry = self.add_outputdir_entry(11, 0, self.mainframe, self.folder)
-        self.outputdir_btn = self.add_outputdir_btn(self.grid[11][5])
-        self.outputdir_btn = self.add_process_btn(13, 2, self.mainframe)
 
+        self.tabs_panel = self.add_notebook_panel(master)
+        self.tabs_panel.bind("<ButtonRelease-1>", self._switch_tab_onclick)
+
+        # region "define Concatenation tab"
+        self.tabs_panel.concatenation_tab = self.append_tab(self.tabs_panel, 'Concatenate')
+        self.tabs_panel.concatenation_tab.grid_ = self.add_grid(self.tabs_panel.concatenation_tab, 4, 6)
+        self.lb_concat = self.add_label(0, 1, self.tabs_panel.concatenation_tab, 'Concatenate Vertically')
+        self.bs_concat = self.add_biscale(0, 0, self.tabs_panel.concatenation_tab, self.lb_concat, 
+                                            'Concatenate Vertically', 'Concatenate Horizontally')
+        self.lb_resize = self.add_label(1, 1, self.tabs_panel.concatenation_tab, 'Resize to Max')
+        self.bs_resize = self.add_biscale(1, 0, self.tabs_panel.concatenation_tab, self.lb_resize, 
+                                            'Resize to Max', 'Do not Resize')
+        self.colorbtn = self.add_color_btn(self.tabs_panel.concatenation_tab.grid_[2][0])
+        self.lb_colorb = self.add_label(2, 1, self.tabs_panel.concatenation_tab, 'Background Color')
+        # endregion
+
+        # region "define Resizing tab"
+        self.tabs_panel.resizing_tab = self.append_tab(self.tabs_panel, 'Resize')
+        self.tabs_panel.resizing_tab.grid_ = self.add_grid(self.tabs_panel.resizing_tab, 4, 6)
+        self.lb_sizes = self.add_label(0, 1, self.tabs_panel.resizing_tab, 'Percent')
+        self.bs_sizes = self.add_biscale(0, 0, self.tabs_panel.resizing_tab, self.lb_sizes, 
+                                            'Percent', 'Pixels')        
+        self.lb_width = tk.Label(self.tabs_panel.resizing_tab.grid_[1][0], text='W:', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))
+        self.lb_width.pack(side=tk.RIGHT, padx=3)
+        self.width_entry = self.add_size_entry(self.tabs_panel.resizing_tab.grid_[1][1])
+        self.lb_height = tk.Label(self.tabs_panel.resizing_tab.grid_[1][2], text='H:', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))        
+        self.lb_height.pack(side=tk.RIGHT, padx=3)
+        self.height_entry = self.add_size_entry(self.tabs_panel.resizing_tab.grid_[1][3])
+
+        self.lb_maxmin = self.add_label(2, 1, self.tabs_panel.resizing_tab, 'maximum sizes')
+        self.bs_maxmin = self.add_biscale(2, 0, self.tabs_panel.resizing_tab, self.lb_maxmin, 
+                                            'maximum sizes', 'minimum sizes')
+        self.find_widthheight_btn = self.add_wdthgt_btn(2, 4, self.tabs_panel.resizing_tab)
+
+        self.lb_file_type = self.add_label(3, 1, self.tabs_panel.resizing_tab, 'save as PNG')
+        self.bs_file_type = self.add_biscale(3, 0, self.tabs_panel.resizing_tab, self.lb_file_type, 
+                                            'save as PNG', 'save as JPG')
+        # endregion
+
+        # region "define Files frame"
+        self.files_frame = self.add_file_frame(master)
+        self.files_frame.grid_ = self.add_grid(self.files_frame, 10, 6)
+        self.lb_files = self.add_label(0, 0, self.files_frame, 'Files:')
+        self.lb_files.configure(font=('Consolas', '12', 'bold'), padx=3)
+        self.lstbox = self.add_listbox(1, 0, self.files_frame)
+        self.clear_listboxbtn = self.add_clear_listbox_btn(self.files_frame.grid_[0][3])
+        self.inputbtn = self.add_inputbtn(self.files_frame.grid_[0][4])
+        self.excludebtn = self.add_excludebtn(self.files_frame.grid_[0][5])
+        self.lb_outputdir = self.add_label(6, 0, self.files_frame, 'Output Path:')
+        self.lb_outputdir.configure(font=('Consolas', '12', 'bold'), padx=3)
+        self.direntry = self.add_outputdir_entry(7, 0, self.files_frame, self.output_entry_values[0])
+        self.outputdir_btn = self.add_outputdir_btn(self.files_frame.grid_[7][5])
+        self.outputdir_btn = self.add_process_btn(9, 2, self.files_frame)
+        # endregion
+        
+
+    def _switch_tab_onclick(self, event=None):
+        """
+        clicking tabs event calls this function
+        """
+        tab_index = self.tabs_panel.index('current')
+        if tab_index != self.current_active_tab:
+            self.output_entry_values[self.current_active_tab] = self.direntry.variable
+            self.current_active_tab = tab_index
+            self.direntry.variable = self.output_entry_values[tab_index]
+            self.lstbox.focus_force()
+        else:
+            return
+            
+       
     def configure_main_window(self):
         """
         main window properties
@@ -48,15 +111,52 @@ class ImageMerger():
         self.master.title('ImageFiles Merger')
         _icon_path = r"img/puzzle.ico"
         self.master.iconbitmap(_icon_path)
-        self.master.geometry('320x440')
-        self.master.configure(bg='LightSteelBlue')
+        self.master.geometry('320x480')
+        self.master.configure(bg=self.DARK_BG)
         self.master.resizable(False, False)
 
-    def add_mainframe(self, master):
+    def add_notebook_panel(self, master):
         """
-        all elements are placed on a single Frame
+        placed in top side of the app
         """
-        _frame = tk.LabelFrame(master, width=300, height=420)
+        nb = ttk.Notebook(master, width=304, height=124)
+        nb.style = ttk.Style()
+        nb.style.theme_create( "tabs", parent="alt", settings={
+            ".": {
+                "configure": {"background": self.DARK_BG}
+            },           
+            "TNotebook": {
+                "configure": {
+                    "tabmargins": [2, 5, 2, 0], 
+                    "borderwidth": 0
+                }
+            },
+            "TNotebook.Tab": {
+                "configure": {"padding": [5, 1], "background": self.DARK_BG},
+                "map": {
+                    "background": [("selected", 'AliceBlue')],
+                    "expand": [("selected", [1, 1, 1, 0])] 
+                } 
+            } 
+        } )
+
+        nb.style.theme_use("tabs")
+        nb.pack(expand=1)
+        return nb
+
+    def append_tab(self, notebook, text):
+        """
+        creates frame, appends it as a tab
+        """
+        frame = tk.LabelFrame(notebook, width=300, height=120, bg=self.DARK_BG)
+        notebook.add(frame, text=text)
+        return frame
+
+    def add_file_frame(self, master):
+        """
+        file related widget placed here
+        """
+        _frame = tk.LabelFrame(master, width=300, height=420, relief=tk.FLAT, border=1)
         _frame.propagate(False)
         _frame.pack(side=tk.BOTTOM, pady=8)
         return _frame
@@ -70,7 +170,7 @@ class ImageMerger():
             result.append(list())
             tk.Grid.rowconfigure(master, i, weight=0)
             for j in range(sizey):
-                frame = tk.Frame(master, width=50, height=30, bg='LightSteelBlue')
+                frame = tk.Frame(master, width=50, height=30, bg=self.DARK_BG)
                 frame.grid(row=i, column=j, sticky=tk.NSEW)
                 tk.Grid.columnconfigure(master, j, weight=0)
                 result[i].append(frame)
@@ -105,28 +205,89 @@ class ImageMerger():
         _scale = BinaryScale(master=master, strvalue=lbl, truestr=truestr, falsestr=falsestr, 
                 orient='horizontal', from_=0, to=1)
         _scale.configure(background='Teal', length=25, width=8, highlightbackground='DarkSlateBlue', 
-                borderwidth=0, sliderrelief=tk.FLAT, troughcolor='AliceBlue', sliderlength=15, 
+                borderwidth=0, sliderrelief=tk.FLAT, troughcolor=self.LIGHT_BG, sliderlength=15, 
                 highlightthickness=2, showvalue=0)
         _scale.grid(row=row_index, column=column_index)
         return _scale
 
     def add_label(self, row_index, column_index, master, txt):
         """
+        just hides some simple code
         """
-        _label = BinaryLabel(master=master, initialstr=txt, background='LightSteelBlue', 
+        _label = BinaryLabel(master=master, initialstr=txt, background=self.DARK_BG, 
                 font=('Consolas', '14', 'bold'))
         _label.grid(row=row_index, column=column_index, columnspan=5, sticky=tk.W)
         return _label
 
+    def add_size_entry(self, master, txt=''):
+        """
+        for width and height entries
+        """
+        master.propagate(False)
+        _entry = MergerEntry(master=master, initialstr=txt, justify='right', bg=self.LIGHT_BG)
+        _entry.pack(pady=3)
+        _entry.variable = '100'
+        return _entry    
+
+    def _find_widthheight(self):
+        """
+        runs through selected image list, \\
+        returns width and height in pixels
+        """
+        self.bs_sizes.variable = False
+        self.bs_sizes.strv.variable = self.bs_sizes.falsestr
+        file_names = self.lstbox.get(0, tk.END)
+        if not file_names: 
+            self.width_entry.variable = 'none'
+            self.height_entry.variable = 'none'
+            return
+        image_list = [Image.open(e) for e in file_names]
+
+        if self.bs_maxmin.variable:
+            self.width_entry.variable = MergerScripts.find_max_width(image_list)
+            self.height_entry.variable = MergerScripts.find_max_height(image_list)
+        else:
+            self.width_entry.variable = MergerScripts.find_min_width(image_list)
+            self.height_entry.variable = MergerScripts.find_min_height(image_list)
+
+    def add_wdthgt_btn(self, rowindex, columnindex, master):
+        """
+        "find" button
+        """
+        _frame = tk.Frame(master, width=75, height=30, background=self.DARK_BG)
+        _frame.propagate(False)
+        _frame.grid(row=rowindex, column=columnindex, columnspan=2)
+        _btn = tk.Button(_frame, text='find', activebackground=self.LIGHT_BG, 
+                font=('Consolas', '14', 'bold'), command=self._find_widthheight)
+        _btn.pack(padx=5, pady=3)
+        return _btn     
+
+
     def add_listbox(self, rowindex, columnindex, master):
         """
+        main listbox
         """
-        lbox = tk.Listbox(master, bg='AliceBlue', height=4)
+        lbox = tk.Listbox(master, bg=self.LIGHT_BG, height=4)
         lbox.grid(row=rowindex, column=columnindex, columnspan=6, rowspan=4, sticky=tk.NSEW)
         return lbox
 
+    def _clear_listbox_files(self):
+        self.lstbox.delete(0, tk.END)
+
+    def add_clear_listbox_btn(self, master):
+        """
+        "cl" clear button
+        """
+        master.propagate(False)
+        _btn = tk.Button(master, activebackground=self.LIGHT_BG, command=self._clear_listbox_files)
+        _btn.img = tk.PhotoImage(file=r"img/clear.png")
+        _btn.configure(image=_btn.img)        
+        _btn.pack(padx=5, pady=3)
+        return _btn     
+
     def _call_selectfiles(self):
         """
+        called by "+" button \\
         calls tkinter.dialogs askopenfilenames \\
         if listbox cursor is active file names should be placed after it \\
         """
@@ -145,7 +306,7 @@ class ImageMerger():
         '+' sign button
         """
         master.propagate(False)
-        _btn = tk.Button(master, activebackground='AliceBlue', command=self._call_selectfiles)
+        _btn = tk.Button(master, activebackground=self.LIGHT_BG, command=self._call_selectfiles)
         _btn.img = tk.PhotoImage(file=r"img/include.png")
         _btn.configure(image=_btn.img)
         _btn.pack(padx=5, pady=3)
@@ -153,6 +314,7 @@ class ImageMerger():
 
     def _call_excludefile(self):
         """
+        called by "-" button
         """
         _curpos = self.lstbox.curselection()
         if len(_curpos):
@@ -163,7 +325,7 @@ class ImageMerger():
         '-' sign button
         """
         master.propagate(False)
-        _btn = tk.Button(master, activebackground='AliceBlue', command=self._call_excludefile)
+        _btn = tk.Button(master, activebackground=self.LIGHT_BG, command=self._call_excludefile)
         _btn.img = tk.PhotoImage(file=r"img/exclude.png")
         _btn.configure(image=_btn.img)        
         _btn.pack(padx=5, pady=3)
@@ -171,67 +333,115 @@ class ImageMerger():
 
     def add_outputdir_entry(self, rowindex, columnindex, master, txt):
         """
+        creates tk.Entry that shows output path
         """
-        _entry = MergerEntry(master=master, initialstr=txt, bg='AliceBlue')
+        _entry = MergerEntry(master=master, initialstr=txt, bg=self.LIGHT_BG)
         _entry.grid(row=rowindex, column=columnindex, columnspan=5, sticky=tk.NSEW, padx=3, pady=4)
         return _entry
 
     def _call_askdir(self):
         """
-        always returns *.png string
+        returns *.png string for a Concatenation tab
         """
         _path = askdirectory()
-        _path = ['\\' if e == '/' else e for e in _path]
-        _path.append('\\')
-        _path = MergerScripts.form_filepathstr(''.join(_path))
-        self.direntry.variable = _path
+        if _path:
+            if self.current_active_tab == 0:
+                _path = ['\\' if e == '/' else e for e in _path]
+                _path.append('\\')
+                _path = MergerScripts.make_default_concatenation_path(''.join(_path))
+                self.direntry.variable = _path
+
+            elif self.current_active_tab == 1:
+                _path = ['\\' if e == '/' else e for e in _path]
+                _path.append('\\')
+                _path = ''.join(_path)
+                self.direntry.variable = _path
 
     def add_outputdir_btn(self, master):
         """
         """
         master.propagate(False)
-        _btn = tk.Button(master, text='<<', activebackground='AliceBlue', 
+        _btn = tk.Button(master, text='<<', activebackground=self.LIGHT_BG, 
                 font=('Consolas', '14', 'bold'), command=self._call_askdir)
         _btn.pack(padx=5, pady=3)
         return _btn
 
     def _call_process_files(self):
         """
+        called by "process" button \\
+        checks 'current_active_tab' property \\
+        calls subservient functions
+        """
+        if self.current_active_tab == 0:
+            self._make_concatenation()
+        elif self.current_active_tab == 1:
+            self._make_resizing()
+
+    def _make_concatenation(self):
+        """
         depending on activated flags different combination of scripts is called
         """
         file_names = self.lstbox.get(0, tk.END)
         if len(file_names) < 2: return
 
-        file_list = [Image.open(e) for e in file_names]
+        image_list = [Image.open(e) for e in file_names]
 
         if self.bs_resize.variable: 
             if self.bs_concat.variable:
-                max_width = MergerScripts.find_max_width(file_list)
-                file_list = MergerScripts.resize_all_tomax(file_list, max_width, 
+                max_width = MergerScripts.find_max_width(image_list)
+                image_list = MergerScripts.resize_all_tomax(image_list, max_width, 
                                                     Image, is_vertical=True)
             else:
-                max_height = MergerScripts.find_max_height(file_list)
-                file_list = MergerScripts.resize_all_tomax(file_list, max_height, 
+                max_height = MergerScripts.find_max_height(image_list)
+                image_list = MergerScripts.resize_all_tomax(image_list, max_height, 
                                                     Image, is_vertical=False)
             
         if self.bs_concat.variable: 
-            result_image = MergerScripts.concatenate_v(file_list, self.bg_color, Image)
+            result_image = MergerScripts.concatenate_v(image_list, self.bg_color, Image)
         else:
-            result_image = MergerScripts.concatenate_h(file_list, self.bg_color, Image)
+            result_image = MergerScripts.concatenate_h(image_list, self.bg_color, Image)
         
         _path = self.direntry.variable
-        _path = MergerScripts.form_filepathstr(_path)
+        _path = MergerScripts.make_default_concatenation_path(_path)
         self.direntry.variable = _path        
         result_image.save(f'{self.direntry.variable}', 'PNG')
+
+    def _make_resizing(self):
+        """
+        converts width, height values \\
+        calls subservient resizing functions
+        """
+        file_names = self.lstbox.get(0, tk.END)
+        if not file_names: return
+
+        try:
+            width = int(self.width_entry.variable)
+        except ValueError:
+            width = None
+
+        try:
+            height = int(self.height_entry.variable)
+        except ValueError:
+            height = None
         
+        filetype = 'PNG' if self.bs_file_type.variable else 'JPEG'
+
+        if self.bs_sizes.variable == True:
+            MergerScripts.resize_percents(
+                file_names, self.direntry.variable, width, height, filetype)
+        else:
+            MergerScripts.resize_pixels(
+                file_names, self.direntry.variable, width, height, filetype)
+            
 
     def add_process_btn(self, rowindex, columnindex, master):
         """
+        place "process" btn on bottom line
         """
-        _frame = tk.Frame(master, width=100, height=30, background='LightSteelBlue')
+        _frame = tk.Frame(master, width=100, height=30, background=self.DARK_BG)
         _frame.grid(row=rowindex, column=columnindex, columnspan=2)
         _frame.propagate(False)
-        _btn = tk.Button(_frame, text='Process', activebackground='AliceBlue', 
+        _btn = tk.Button(_frame, text='Process', activebackground=self.LIGHT_BG, 
                 font=('Consolas', '14', 'bold'), command=self._call_process_files)
         _btn.pack(padx=5, pady=3)
         return _btn              

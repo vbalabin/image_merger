@@ -1,5 +1,7 @@
-from src.mscripts import MergerScripts
+import pytest
 from PIL import Image
+from src.mscripts import MergerScripts
+
 
 class TestScripts():
     @classmethod
@@ -28,7 +30,17 @@ class TestScripts():
 
     def test_formfilepath(self):
         expected = 'merger.py.png'
-        actual = MergerScripts.form_filepathstr(r'merger.py')
+        actual = MergerScripts.make_default_concatenation_path(r'merger.py')
+        assert expected == actual
+
+    def test_concatenate_h(self):
+        expected = 288
+        actual = MergerScripts.concatenate_h(self.images, 'white', Image).width
+        assert expected == actual
+    
+    def test_concatenate_v(self):
+        expected = 270
+        actual = MergerScripts.concatenate_v(self.images, 'white', Image).height
         assert expected == actual
 
     def test_find_max_width(self):
@@ -41,4 +53,13 @@ class TestScripts():
         actual = MergerScripts.find_max_height(self.images)
         assert expected == actual
 
+    def test_resize_all_tomax(self):
+        expected = 256
+        actual = MergerScripts.resize_all_tomax(self.images, 256, Image, True)[1].width
+        assert expected == actual
 
+    def test_change_folder_strip_ext(self):
+        tested_list = ['D:/images/resized1.png', 'D:/images/resized2.jpg']
+        expected = ['G:/my_images/resized1', 'G:/my_images/resized2']
+        actual = MergerScripts.change_folder_strip_ext(tested_list, 'G:/my_images/')
+        assert expected == actual

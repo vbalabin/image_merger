@@ -18,7 +18,7 @@ class TestMerger():
         expected = False
         actual = self.app.bs_concat.variable
         assert expected == actual
-
+        
     def test_dir_entry_property(self):
         self.app.direntry.variable = 'property'
         expected = 'property'

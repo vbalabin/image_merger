@@ -1,8 +1,8 @@
-gui tool for concatenating images
+gui tool for concatenating or resizing images
 
 python3 windows requirements:
-Pillow
+pillow
 pytest
 
 
-![alt text](https://i.postimg.cc/65rNdSQR/merger.png)
+![alt text](https://i.postimg.cc/Zq711q4Z/result.png)
