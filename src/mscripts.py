@@ -32,18 +32,17 @@ class MergerScripts():
             return fpath[index:]
 
     @staticmethod
-    def make_default_concatenation_path(filepath_str):
+    def make_default_file_path(filepath_str, extension):
         """
-        'C:\\folder\\result' -> 'C:\\folder\\result.png'
+        'C:\\folder\\', 'png' -> 'C:\\folder\\result.png'
         """
         name = MergerScripts._find_filename(filepath_str)
         if name == '':
-            return f'{filepath_str}result.png'
-        elif name[-4:].upper() == '.PNG':
+            return f'{filepath_str}result.{extension}'
+        elif name[-4:].upper() == f'.{extension.upper()}':
             return filepath_str
         else:
-            return f'{filepath_str}.png'
-
+            return f'{filepath_str}.{extension}'
 
     @staticmethod
     def concatenate_h(imglist, bgcolor, Image):
@@ -226,3 +225,12 @@ class MergerScripts():
             else:
                 resized_img = resized_img.convert('RGB')
                 resized_img.save(f'{file_names[i]}.jpg', 'JPEG')
+
+    @staticmethod
+    def create_pdf(file_names, folder, dpi):
+        from PIL import Image
+
+        image = Image.open(file_names[0])
+        other_images = [Image.open(fn).convert('RGB') for fn in file_names[1:]]
+
+        image.save(f'{folder}', save_all=True, resolution=dpi, append_images=other_images)

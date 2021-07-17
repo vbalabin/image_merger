@@ -21,8 +21,9 @@ class ImageMerger():
     # in this list string value for "output path variable" is stored
     # if you click another tab, path changes
     output_entry_values = list()
-    output_entry_values.append(MergerScripts.make_default_concatenation_path(folder))
+    output_entry_values.append(MergerScripts.make_default_file_path(folder, 'png')) 
     output_entry_values.append(folder)
+    output_entry_values.append(MergerScripts.make_default_file_path(folder, 'pdf')) 
     current_active_tab = 0
 
     DARK_BG = 'LightSteelBlue'
@@ -72,6 +73,15 @@ class ImageMerger():
         self.bs_file_type = self.add_biscale(3, 0, self.tabs_panel.resizing_tab, self.lb_file_type, 
                                             'save as PNG', 'save as JPG')
         # endregion
+
+        # region "define create pdf"
+        self.tabs_panel.pdf_tab = self.append_tab(self.tabs_panel, 'pdf')
+        self.tabs_panel.pdf_tab.grid_ = self.add_grid(self.tabs_panel.pdf_tab, 4, 6)
+        self.lb_dpi = tk.Label(self.tabs_panel.pdf_tab.grid_[0][0], text='DPI', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))
+        self.lb_dpi.pack(side=tk.RIGHT)
+        self.dpi_entry = self.add_dpi_entry(self.tabs_panel.pdf_tab.grid_[0][1])
+        # endregion        
 
         # region "define Files frame"
         self.files_frame = self.add_file_frame(master)
@@ -227,7 +237,17 @@ class ImageMerger():
         _entry = MergerEntry(master=master, initialstr=txt, justify='right', bg=self.LIGHT_BG)
         _entry.pack(pady=3)
         _entry.variable = '100'
-        return _entry    
+        return _entry   
+
+    def add_dpi_entry(self, master, txt=''):
+        """
+        for dpi entriy
+        """
+        master.propagate(False)
+        _entry = MergerEntry(master=master, initialstr=txt, justify='right', bg=self.LIGHT_BG)
+        _entry.pack(pady=6, padx=9)
+        _entry.variable = '96'
+        return _entry          
 
     def _find_widthheight(self):
         """
@@ -376,6 +396,8 @@ class ImageMerger():
             self._make_concatenation()
         elif self.current_active_tab == 1:
             self._make_resizing()
+        elif self.current_active_tab == 2:
+            self._make_pdf()            
 
     def _make_concatenation(self):
         """
@@ -433,6 +455,21 @@ class ImageMerger():
             MergerScripts.resize_pixels(
                 file_names, self.direntry.variable, width, height, filetype)
             
+    def _make_pdf(self):
+        """
+        according to dpi value \\
+        calls subservient pdf functions
+        """
+        file_names = self.lstbox.get(0, tk.END)
+        if not file_names: return
+
+        try:
+            dpi = int(self.dpi_entry.variable)
+        except ValueError:
+            dpi = 72
+
+        MergerScripts.create_pdf(file_names, self.direntry.variable, dpi)
+
 
     def add_process_btn(self, rowindex, columnindex, master):
         """
