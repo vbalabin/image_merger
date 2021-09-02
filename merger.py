@@ -24,6 +24,7 @@ class ImageMerger():
     output_entry_values.append(MergerScripts.make_default_file_path(folder, 'png')) 
     output_entry_values.append(folder)
     output_entry_values.append(MergerScripts.make_default_file_path(folder, 'pdf')) 
+    output_entry_values.append(folder)
     current_active_tab = 0
 
     DARK_BG = 'LightSteelBlue'
@@ -81,7 +82,35 @@ class ImageMerger():
                                 bg=self.DARK_BG, font=('Consolas', '14', 'bold'))
         self.lb_dpi.pack(side=tk.RIGHT)
         self.dpi_entry = self.add_dpi_entry(self.tabs_panel.pdf_tab.grid_[0][1])
-        # endregion        
+        # endregion    
+         
+        # region "define cropping"
+        self.tabs_panel.cropping_tab = self.append_tab(self.tabs_panel, 'cropping')
+        self.tabs_panel.cropping_tab.grid_ = self.add_grid(self.tabs_panel.cropping_tab, 4, 6)
+
+        self.lb_leftwidth = tk.Label(self.tabs_panel.cropping_tab.grid_[0][0], text='LW:', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))
+        self.lb_leftwidth.pack(side=tk.RIGHT, padx=3)
+        self.leftwidth_entry = self.add_size_entry(self.tabs_panel.cropping_tab.grid_[0][1], initial='0')
+        self.lb_leftheight = tk.Label(self.tabs_panel.cropping_tab.grid_[0][2], text='LH:', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))        
+        self.lb_leftheight.pack(side=tk.RIGHT, padx=3)
+        self.leftheight_entry = self.add_size_entry(self.tabs_panel.cropping_tab.grid_[0][3], initial='0')
+
+        self.lb_rightwidth = tk.Label(self.tabs_panel.cropping_tab.grid_[1][0], text='RW:', 
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))
+        self.lb_rightwidth.pack(side=tk.RIGHT, padx=3)
+        self.rightwidth_entry = self.add_size_entry(self.tabs_panel.cropping_tab.grid_[1][1], initial='~')
+        self.lb_rightheight = tk.Label(self.tabs_panel.cropping_tab.grid_[1][2], text='RH:',
+                                bg=self.DARK_BG, font=('Consolas', '14', 'bold'))        
+        self.lb_rightheight.pack(side=tk.RIGHT, padx=3)
+        self.rightheight_entry = self.add_size_entry(self.tabs_panel.cropping_tab.grid_[1][3], initial='~')        
+
+        self.find_leftright_btn = self.add_lftrht_btn(0, 4, self.tabs_panel.cropping_tab)
+
+        self.colorbtn_crop = self.add_color_btn(self.tabs_panel.cropping_tab.grid_[2][0])
+        self.lb_colorb_crop = self.add_label(2, 1, self.tabs_panel.cropping_tab, 'Background Color')
+        # endregion                
 
         # region "define Files frame"
         self.files_frame = self.add_file_frame(master)
@@ -193,6 +222,7 @@ class ImageMerger():
         """
         _clr = colorchooser.askcolor()
         self.colorbtn.configure(background=_clr[1])
+        self.colorbtn_crop.configure(background=_clr[1])
         self.bg_color = _clr[1]
 
     def add_color_btn(self, master):
@@ -229,15 +259,15 @@ class ImageMerger():
         _label.grid(row=row_index, column=column_index, columnspan=5, sticky=tk.W)
         return _label
 
-    def add_size_entry(self, master, txt=''):
+    def add_size_entry(self, master, txt='', initial='100'):
         """
         for width and height entries
         """
         master.propagate(False)
         _entry = MergerEntry(master=master, initialstr=txt, justify='right', bg=self.LIGHT_BG)
         _entry.pack(pady=3)
-        _entry.variable = '100'
-        return _entry   
+        _entry.variable = initial
+        return _entry
 
     def add_dpi_entry(self, master, txt=''):
         """
@@ -270,6 +300,27 @@ class ImageMerger():
             self.width_entry.variable = MergerScripts.find_min_width(image_list)
             self.height_entry.variable = MergerScripts.find_min_height(image_list)
 
+    def _find_leftright(self):
+        """
+        runs through selected image list, \\
+        returns right width and right height in pixels
+        for find btn in concatenation tab
+        """
+        file_names = self.lstbox.get(0, tk.END)
+        if not file_names: 
+            self.leftwidth_entry.variable = 'none'
+            self.leftheight_entry.variable = 'none'
+            self.rightwidth_entry.variable = 'none'
+            self.rightheight_entry.variable = 'none'
+            return
+        image_list = [Image.open(e) for e in file_names]
+
+        self.leftwidth_entry.variable = '0'
+        self.leftheight_entry.variable = '0'
+        self.rightwidth_entry.variable = MergerScripts.find_max_width(image_list)
+        self.rightheight_entry.variable = MergerScripts.find_max_height(image_list)
+
+
     def add_wdthgt_btn(self, rowindex, columnindex, master):
         """
         "find" button
@@ -279,6 +330,18 @@ class ImageMerger():
         _frame.grid(row=rowindex, column=columnindex, columnspan=2)
         _btn = tk.Button(_frame, text='find', activebackground=self.LIGHT_BG, 
                 font=('Consolas', '14', 'bold'), command=self._find_widthheight)
+        _btn.pack(padx=5, pady=3)
+        return _btn     
+
+    def add_lftrht_btn(self, rowindex, columnindex, master):
+        """
+        "find" button
+        """
+        _frame = tk.Frame(master, width=75, height=30, background=self.DARK_BG)
+        _frame.propagate(False)
+        _frame.grid(row=rowindex, column=columnindex, columnspan=2)
+        _btn = tk.Button(_frame, text='find', activebackground=self.LIGHT_BG, 
+                font=('Consolas', '14', 'bold'), command=self._find_leftright)
         _btn.pack(padx=5, pady=3)
         return _btn     
 
@@ -368,7 +431,7 @@ class ImageMerger():
             if self.current_active_tab == 0:
                 _path = ['\\' if e == '/' else e for e in _path]
                 _path.append('\\')
-                _path = MergerScripts.make_default_concatenation_path(''.join(_path))
+                _path = MergerScripts.make_default_file_path(''.join(_path), 'png')
                 self.direntry.variable = _path
 
             elif self.current_active_tab == 1:
@@ -397,7 +460,9 @@ class ImageMerger():
         elif self.current_active_tab == 1:
             self._make_resizing()
         elif self.current_active_tab == 2:
-            self._make_pdf()            
+            self._make_pdf()
+        elif self.current_active_tab == 3:
+            self._make_cropping()                          
 
     def _make_concatenation(self):
         """
@@ -424,7 +489,7 @@ class ImageMerger():
             result_image = MergerScripts.concatenate_h(image_list, self.bg_color, Image)
         
         _path = self.direntry.variable
-        _path = MergerScripts.make_default_concatenation_path(_path)
+        _path = MergerScripts.make_default_file_path(_path, 'png') # try
         self.direntry.variable = _path        
         result_image.save(f'{self.direntry.variable}', 'PNG')
 
@@ -470,6 +535,19 @@ class ImageMerger():
 
         MergerScripts.create_pdf(file_names, self.direntry.variable, dpi)
 
+    def _make_cropping(self):
+        """
+        redefines canvas of the images
+        """
+        file_names = self.lstbox.get(0, tk.END)
+        if not file_names: return        
+
+        left_w = int(self.leftwidth_entry.variable)
+        left_h = int(self.leftheight_entry.variable)
+        right_w = int(self.rightwidth_entry.variable)
+        right_h = int(self.rightheight_entry.variable)
+        frame = (left_w, left_h), (right_w, right_h)
+        MergerScripts.crop_images(file_names, self.bg_color, self.direntry.variable, frame)
 
     def add_process_btn(self, rowindex, columnindex, master):
         """

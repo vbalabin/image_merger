@@ -234,3 +234,24 @@ class MergerScripts():
         other_images = [Image.open(fn).convert('RGB') for fn in file_names[1:]]
 
         image.save(f'{folder}', save_all=True, resolution=dpi, append_images=other_images)
+
+    @staticmethod
+    def crop_images(file_names, bgcolor, folder, coordinates):
+        ext = 'PNG'
+        from PIL import Image
+        l_w, l_h = coordinates[0]
+        r_w, r_h = coordinates[1]
+        image_list = [Image.open(e) for e in file_names]
+        file_names = MergerScripts.change_folder_strip_ext(file_names, folder)
+
+        for i, im in enumerate(image_list):
+            im.width, im.height
+            crop_img = Image.new('RGB', (r_w - l_w, r_h - l_h), bgcolor)
+            crop_img.paste(im, (-l_w, -l_h))
+            if ext=='PNG':
+                crop_img.save(f'{file_names[i]}.png', 'PNG')
+            else:
+                crop_img = crop_img.convert('RGB')
+                crop_img.save(f'{file_names[i]}.jpg', 'JPEG')
+
+        
