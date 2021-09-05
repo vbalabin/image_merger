@@ -158,7 +158,7 @@ class MergerScripts():
         return result
 
     @staticmethod
-    def resize_percents(file_names, folder, width, height, ext):
+    def resize_percents(file_names, folder, width, height, ext, dpi):
         """
         """
         from PIL import Image
@@ -189,12 +189,12 @@ class MergerScripts():
                 resized_img = current.resize(_size, Image.ANTIALIAS)
 
             if ext=='PNG':
-                resized_img.save(f'{file_names[i]}.png', 'PNG')
+                resized_img.save(f'{file_names[i]}.png', 'PNG', dpi=(dpi, dpi))
             else:
-                resized_img.save(f'{file_names[i]}.jpg', 'JPEG')
+                resized_img.save(f'{file_names[i]}.jpg', 'JPEG', dpi=(dpi, dpi))
 
     @staticmethod
-    def resize_pixels(file_names, folder, width, height, ext):
+    def resize_pixels(file_names, folder, width, height, ext, dpi):
         """
         """
         from PIL import Image
@@ -221,10 +221,10 @@ class MergerScripts():
                 resized_img = current.resize(_size, Image.ANTIALIAS)
 
             if ext=='PNG':
-                resized_img.save(f'{file_names[i]}.png', 'PNG')
+                resized_img.save(f'{file_names[i]}.png', 'PNG', dpi=(dpi, dpi))
             else:
                 resized_img = resized_img.convert('RGB')
-                resized_img.save(f'{file_names[i]}.jpg', 'JPEG')
+                resized_img.save(f'{file_names[i]}.jpg', 'JPEG', dpi=(dpi, dpi))
 
     @staticmethod
     def create_pdf(file_names, folder, dpi):
@@ -236,8 +236,8 @@ class MergerScripts():
         image.save(f'{folder}', save_all=True, resolution=dpi, append_images=other_images)
 
     @staticmethod
-    def crop_images(file_names, bgcolor, folder, coordinates):
-        ext = 'PNG'
+    def crop_images(file_names, bgcolor, folder, coordinates, dpi):
+        ext = 'PNG' # always PNG
         from PIL import Image
         l_w, l_h = coordinates[0]
         r_w, r_h = coordinates[1]
@@ -249,9 +249,9 @@ class MergerScripts():
             crop_img = Image.new('RGB', (r_w - l_w, r_h - l_h), bgcolor)
             crop_img.paste(im, (-l_w, -l_h))
             if ext=='PNG':
-                crop_img.save(f'{file_names[i]}.png', 'PNG')
+                crop_img.save(f'{file_names[i]}.png', 'PNG', dpi=(dpi, dpi))
             else:
                 crop_img = crop_img.convert('RGB')
-                crop_img.save(f'{file_names[i]}.jpg', 'JPEG')
+                crop_img.save(f'{file_names[i]}.jpg', 'JPEG', dpi=(dpi, dpi))
 
         

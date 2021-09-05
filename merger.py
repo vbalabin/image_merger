@@ -490,8 +490,14 @@ class ImageMerger():
         
         _path = self.direntry.variable
         _path = MergerScripts.make_default_file_path(_path, 'png') # try
-        self.direntry.variable = _path        
-        result_image.save(f'{self.direntry.variable}', 'PNG')
+        self.direntry.variable = _path
+
+        try:
+            dpi = int(self.dpi_entry.variable)
+        except ValueError:
+            dpi = 96        
+
+        result_image.save(f'{self.direntry.variable}', 'PNG', dpi=(dpi, dpi))
 
     def _make_resizing(self):
         """
@@ -513,12 +519,17 @@ class ImageMerger():
         
         filetype = 'PNG' if self.bs_file_type.variable else 'JPEG'
 
+        try:
+            dpi = int(self.dpi_entry.variable)
+        except ValueError:
+            dpi = 96
+
         if self.bs_sizes.variable == True:
             MergerScripts.resize_percents(
-                file_names, self.direntry.variable, width, height, filetype)
+                file_names, self.direntry.variable, width, height, filetype, dpi)
         else:
             MergerScripts.resize_pixels(
-                file_names, self.direntry.variable, width, height, filetype)
+                file_names, self.direntry.variable, width, height, filetype, dpi)
             
     def _make_pdf(self):
         """
@@ -531,7 +542,7 @@ class ImageMerger():
         try:
             dpi = int(self.dpi_entry.variable)
         except ValueError:
-            dpi = 72
+            dpi = 96
 
         MergerScripts.create_pdf(file_names, self.direntry.variable, dpi)
 
@@ -546,8 +557,14 @@ class ImageMerger():
         left_h = int(self.leftheight_entry.variable)
         right_w = int(self.rightwidth_entry.variable)
         right_h = int(self.rightheight_entry.variable)
-        frame = (left_w, left_h), (right_w, right_h)
-        MergerScripts.crop_images(file_names, self.bg_color, self.direntry.variable, frame)
+        frame_coordinates = (left_w, left_h), (right_w, right_h)
+
+        try:
+            dpi = int(self.dpi_entry.variable)
+        except ValueError:
+            dpi = 96
+
+        MergerScripts.crop_images(file_names, self.bg_color, self.direntry.variable, frame_coordinates, dpi)
 
     def add_process_btn(self, rowindex, columnindex, master):
         """
