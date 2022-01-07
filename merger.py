@@ -424,21 +424,20 @@ class ImageMerger():
 
     def _call_askdir(self):
         """
-        returns *.png string for a Concatenation tab
+        outputdir_btn calls this
         """
         _path = askdirectory()
-        if _path:
-            if self.current_active_tab == 0:
-                _path = ['\\' if e == '/' else e for e in _path]
-                _path.append('\\')
-                _path = MergerScripts.make_default_file_path(''.join(_path), 'png')
-                self.direntry.variable = _path
+        
+        _path = ['\\' if e == '/' else e for e in _path]
+        _path.append('\\')
+        
+        self.output_entry_values[0] = MergerScripts.make_default_file_path(''.join(_path), 'png')
+        self.output_entry_values[1] = ''.join(_path)
+        self.output_entry_values[2] = MergerScripts.make_default_file_path(''.join(_path), 'pdf')
+        self.output_entry_values[3] = ''.join(_path)
 
-            elif self.current_active_tab == 1:
-                _path = ['\\' if e == '/' else e for e in _path]
-                _path.append('\\')
-                _path = ''.join(_path)
-                self.direntry.variable = _path
+        self.direntry.variable = self.output_entry_values[self.current_active_tab]
+
 
     def add_outputdir_btn(self, master):
         """
