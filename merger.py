@@ -73,6 +73,9 @@ class ImageMerger():
         self.lb_file_type = self.add_label(3, 1, self.tabs_panel.resizing_tab, 'save as PNG')
         self.bs_file_type = self.add_biscale(3, 0, self.tabs_panel.resizing_tab, self.lb_file_type, 
                                             'save as PNG', 'save as JPG')
+        self.lb_rgba_convert = self.add_label(3, 5, self.tabs_panel.resizing_tab, '..')
+        self.bs_rgba_convert = self.add_biscale(3, 4, self.tabs_panel.resizing_tab, self.lb_rgba_convert, 
+                                            '..', 'RGB')
         # endregion
 
         # region "define create pdf"
@@ -523,12 +526,14 @@ class ImageMerger():
         except ValueError:
             dpi = 96
 
+        is_converted_to_rgb = not self.bs_rgba_convert.variable
+
         if self.bs_sizes.variable == True:
             MergerScripts.resize_percents(
-                file_names, self.direntry.variable, width, height, filetype, dpi)
+                file_names, self.direntry.variable, width, height, filetype, dpi, is_converted_to_rgb)
         else:
             MergerScripts.resize_pixels(
-                file_names, self.direntry.variable, width, height, filetype, dpi)
+                file_names, self.direntry.variable, width, height, filetype, dpi, is_converted_to_rgb)
             
     def _make_pdf(self):
         """
@@ -542,8 +547,9 @@ class ImageMerger():
             dpi = int(self.dpi_entry.variable)
         except ValueError:
             dpi = 96
-
-        MergerScripts.create_pdf(file_names, self.direntry.variable, dpi)
+        
+        is_converted_to_rgb = not self.bs_rgba_convert.variable
+        MergerScripts.create_pdf(file_names, self.direntry.variable, dpi, is_converted_to_rgb)
 
     def _make_cropping(self):
         """

@@ -158,7 +158,7 @@ class MergerScripts():
         return result
 
     @staticmethod
-    def resize_percents(file_names, folder, width, height, ext, dpi):
+    def resize_percents(file_names, folder, width, height, ext, dpi, rgb):
         """
         """
         from PIL import Image
@@ -188,13 +188,16 @@ class MergerScripts():
                 _size = (round(current.width * width_percent), round(current.height * height_percent))
                 resized_img = current.resize(_size, Image.ANTIALIAS)
 
+            if rgb:
+                resized_img = MergerScripts.alpha_composite_with_color(resized_img).convert('RGB')
+
             if ext=='PNG':
                 resized_img.save(f'{file_names[i]}.png', 'PNG', dpi=(dpi, dpi))
             else:
                 resized_img.save(f'{file_names[i]}.jpg', 'JPEG', dpi=(dpi, dpi))
 
     @staticmethod
-    def resize_pixels(file_names, folder, width, height, ext, dpi):
+    def resize_pixels(file_names, folder, width, height, ext, dpi, rgb):
         """
         """
         from PIL import Image
@@ -220,6 +223,9 @@ class MergerScripts():
                 _size = (new_width, new_height)
                 resized_img = current.resize(_size, Image.ANTIALIAS)
 
+            if rgb:
+                resized_img = MergerScripts.alpha_composite_with_color(resized_img)
+
             if ext=='PNG':
                 resized_img.save(f'{file_names[i]}.png', 'PNG', dpi=(dpi, dpi))
             else:
@@ -227,13 +233,63 @@ class MergerScripts():
                 resized_img.save(f'{file_names[i]}.jpg', 'JPEG', dpi=(dpi, dpi))
 
     @staticmethod
-    def create_pdf(file_names, folder, dpi):
+    def create_pdf(file_names, folder, dpi, is_converted_to_rgb):
         from PIL import Image
 
         image = Image.open(file_names[0])
-        other_images = [Image.open(fn).convert('RGB') for fn in file_names[1:]]
+        other_images = [Image.open(fn) for fn in file_names[1:]]
+
+        if is_converted_to_rgb:
+            image = MergerScripts.alpha_composite_with_color(image).convert('RGB')
+        for i, img in enumerate(other_images):
+            other_images[i] = MergerScripts.alpha_composite_with_color(img).convert('RGB')
 
         image.save(f'{folder}', save_all=True, resolution=dpi, append_images=other_images)
+
+    @staticmethod
+    def alpha_composite(front, back):
+        """Alpha composite two RGBA images.
+
+        Source: http://stackoverflow.com/a/9166671/284318
+
+        Keyword Arguments:
+        front -- PIL RGBA Image object
+        back -- PIL RGBA Image object
+        """
+        import numpy as np
+        from PIL import Image
+        
+        front = np.asarray(front)
+        back = np.asarray(back)
+        result = np.empty(front.shape, dtype='float')
+        alpha = np.index_exp[:, :, 3:]
+        rgb = np.index_exp[:, :, :3]
+        falpha = front[alpha] / 255.0
+        balpha = back[alpha] / 255.0
+        result[alpha] = falpha + balpha * (1 - falpha)
+        old_setting = np.seterr(invalid='ignore')
+        result[rgb] = (front[rgb] * falpha + back[rgb] * balpha * (1 - falpha)) / result[alpha]
+        np.seterr(**old_setting)
+        result[alpha] *= 255
+        np.clip(result, 0, 255)
+        # astype('uint8') maps np.nan and np.inf to 0
+        result = result.astype('uint8')
+        result = Image.fromarray(result, 'RGBA')
+        return result
+
+    @staticmethod
+    def alpha_composite_with_color(image, color=(255, 255, 255)):
+        """Alpha composite an RGBA image with a single color image of the
+        specified color and the same size as the original image.
+
+        Keyword Arguments:
+        image -- PIL RGBA Image object
+        color -- Tuple r, g, b (default 255, 255, 255)
+
+        """
+        from PIL import Image
+        back = Image.new('RGBA', size=image.size, color=color + (255,))
+        return MergerScripts.alpha_composite(image, back)
 
     @staticmethod
     def crop_images(file_names, bgcolor, folder, coordinates, dpi):
